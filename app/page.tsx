@@ -15,8 +15,8 @@ import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
 const LOADING_STEPS = [
-  { text: "掛け算中...", duration: 800 },
-  { text: "事業化中...", duration: 1000 },
+  { text: "掛け算中...", duration: 2000 },
+  { text: "事業化中...", duration: 5000 },
   { text: "採点中...", duration: 700 },
 ]
 
@@ -240,7 +240,7 @@ export default function Page() {
                   disabled={isDeepening}
                   className="w-full sm:w-auto relative z-30 pointer-events-auto"
                 >
-                  {isDeepening ? "詳細化中..." : "もっと詳しく"}
+                  {isDeepening ? "詳細化中..." : "このアイデアを本気で事業化する"}
                 </Button>
               )}
 
@@ -277,7 +277,7 @@ export default function Page() {
             {"© 2026 Goin Business. All rights reserved."}
           </span>
           <span className="text-xs text-muted-foreground">
-            {"※ 生成されるアイデアはAI/アルゴリズムによるジョークです"}
+            {"※ 生成されるアイデアはAI/アルゴリズムによります"}
           </span>
         </div>
       </footer>
