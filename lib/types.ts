@@ -11,4 +11,11 @@ export interface GeneratedIdea {
   monetize: string
   expansion: string
   actionPlan: string
+
+  // optional: "もっと詳しく" で追加生成される実行プラン
+  executionPlan?: string
+  costEstimate?: string
+  channelStrategy?: string
+  techStack?: string
+  riskAndFailurePatterns?: string
 }
