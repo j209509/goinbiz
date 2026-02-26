@@ -17,10 +17,17 @@ type GeneratedIdea = {
   actionPlan: string;
 };
 
-function clampScore(v: any): number {
+function normalizeScore(v: any): number {
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, Math.round(n)));
+
+  // Model sometimes returns 0-10 or 0-1 despite instructions.
+  // Interpret small ranges and scale up to 0-100.
+  let scaled = n;
+  if (scaled > 0 && scaled <= 1) scaled = scaled * 100;
+  else if (scaled >= 0 && scaled <= 10) scaled = scaled * 10;
+
+  return Math.max(0, Math.min(100, Math.round(scaled)));
 }
 
 function asText(v: any): string {
@@ -33,10 +40,10 @@ function normalizeIdea(raw: any): GeneratedIdea {
     concept: asText(raw?.concept),
     target: asText(raw?.target),
     revenueModel: asText(raw?.revenueModel),
-    marketScore: clampScore(raw?.marketScore),
-    profitScore: clampScore(raw?.profitScore),
-    buzzScore: clampScore(raw?.buzzScore),
-    overallScore: clampScore(raw?.overallScore),
+    marketScore: normalizeScore(raw?.marketScore),
+    profitScore: normalizeScore(raw?.profitScore),
+    buzzScore: normalizeScore(raw?.buzzScore),
+    overallScore: normalizeScore(raw?.overallScore),
     mvp: asText(raw?.mvp),
     // UI 側の期待キーに合わせる（旧キーが来ても吸収）
     monetize: asText(raw?.monetize ?? raw?.monetization),
