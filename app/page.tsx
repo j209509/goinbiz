@@ -10,6 +10,7 @@ import { ResultSection } from "@/components/result-section"
 import { ShareSection } from "@/components/share-section"
 import { CommunitySection } from "@/components/community-section"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
 import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
@@ -23,7 +24,10 @@ const LOADING_STEPS = [
 // 例: NEXT_PUBLIC_USE_LOCAL_FALLBACK=1 のときだけ有効
 const USE_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_USE_LOCAL_FALLBACK === "1"
 
-async function generateIdeaViaApi(word1: string, word2: string): Promise<GeneratedIdea> {
+async function generateIdeaViaApi(
+  word1: string,
+  word2: string
+): Promise<{ idea: GeneratedIdea; ideaId?: string }> {
   const r = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,7 +39,53 @@ async function generateIdeaViaApi(word1: string, word2: string): Promise<Generat
     const msg = data?.error ? String(data.error) : `HTTP ${r.status}`
     throw new Error(msg)
   }
-  return data.idea as GeneratedIdea
+
+  return {
+    idea: data.idea as GeneratedIdea,
+    ideaId: typeof data.ideaId === "string" ? data.ideaId : undefined,
+  }
+}
+
+async function deepenIdeaViaApi(params: {
+  word1: string
+  word2: string
+  idea: GeneratedIdea
+  ideaId?: string
+}): Promise<Pick<
+  GeneratedIdea,
+  "executionPlan" | "costEstimate" | "channelStrategy" | "techStack" | "riskAndFailurePatterns"
+>> {
+  const r = await fetch("/api/deepen", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      word1: params.word1,
+      word2: params.word2,
+      ideaId: params.ideaId,
+      idea: {
+        serviceName: params.idea.serviceName,
+        concept: params.idea.concept,
+        target: params.idea.target,
+        revenueModel: params.idea.revenueModel,
+        marketScore: params.idea.marketScore,
+        profitScore: params.idea.profitScore,
+        buzzScore: params.idea.buzzScore,
+        overallScore: params.idea.overallScore,
+        mvp: params.idea.mvp,
+        monetize: params.idea.monetize,
+        expansion: params.idea.expansion,
+        actionPlan: params.idea.actionPlan,
+      },
+    }),
+  })
+
+  const data = await r.json().catch(() => null)
+  if (!r.ok || !data?.ok || !data?.deep) {
+    const msg = data?.error ? String(data.error) : `HTTP ${r.status}`
+    throw new Error(msg)
+  }
+
+  return data.deep
 }
 
 export default function Page() {
@@ -44,16 +94,20 @@ export default function Page() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [loadingStep, setLoadingStep] = useState("")
   const [idea, setIdea] = useState<GeneratedIdea | null>(null)
+  const [ideaId, setIdeaId] = useState<string | undefined>(undefined)
   const [resultKey, setResultKey] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string>("")
+  const [isDeepening, setIsDeepening] = useState(false)
+  const [deepenError, setDeepenError] = useState<string>("")
   const resultRef = useRef<HTMLDivElement>(null)
 
   const handleGenerate = useCallback(() => {
     if (!word1.trim() || !word2.trim()) return
-
     setIsGenerating(true)
     setIdea(null)
+    setIdeaId(undefined)
     setErrorMsg("")
+    setDeepenError("")
 
     let stepIndex = 0
 
@@ -69,10 +123,10 @@ export default function Page() {
       ;(async () => {
         try {
           const generated = await generateIdeaViaApi(word1, word2)
-          setIdea(generated)
+          setIdea(generated.idea)
+          setIdeaId(generated.ideaId)
         } catch (e: any) {
           const msg = e?.message ? String(e.message) : "API error"
-
           if (USE_LOCAL_FALLBACK) {
             const fallback = generateIdea(word1, word2)
             setIdea(fallback)
@@ -81,8 +135,6 @@ export default function Page() {
             setIdea(null)
             setErrorMsg(`生成に失敗しました: ${msg}`)
           }
-
-          // 開発時に原因が追えるように残す
           console.error("/api/generate failed:", e)
         } finally {
           setResultKey((k) => k + 1)
@@ -94,6 +146,36 @@ export default function Page() {
 
     runStep()
   }, [word1, word2])
+
+  const canDeepen =
+    !!idea &&
+    !isGenerating &&
+    !isDeepening &&
+    !idea.executionPlan &&
+    !idea.costEstimate &&
+    !idea.channelStrategy &&
+    !idea.techStack &&
+    !idea.riskAndFailurePatterns
+
+  const handleDeepen = useCallback(() => {
+    if (!idea) return
+
+    setIsDeepening(true)
+    setDeepenError("")
+
+    ;(async () => {
+      try {
+        const deep = await deepenIdeaViaApi({ word1, word2, idea, ideaId })
+        setIdea({ ...idea, ...deep })
+      } catch (e: any) {
+        const msg = e?.message ? String(e.message) : "API error"
+        setDeepenError(`詳細化に失敗しました: ${msg}`)
+        console.error("/api/deepen failed:", e)
+      } finally {
+        setIsDeepening(false)
+      }
+    })()
+  }, [idea, word1, word2, ideaId])
 
   // Scroll to results when generated
   useEffect(() => {
@@ -132,7 +214,6 @@ export default function Page() {
         loadingStep={loadingStep}
       />
 
-      {/* Error */}
       {!!errorMsg && (
         <div className="max-w-4xl mx-auto px-4 -mt-4 pb-4">
           <div className="rounded-lg border border-border/60 bg-background/70 backdrop-blur-sm px-4 py-3 text-sm text-muted-foreground">
@@ -148,6 +229,23 @@ export default function Page() {
             <ProtectionStatusCard />
           </div>
           <ResultSection idea={idea} />
+
+          <div className="max-w-4xl mx-auto px-4 -mt-10 pb-10">
+            <div className="flex flex-col items-center gap-3">
+              {canDeepen && (
+                <Button onClick={handleDeepen} disabled={isDeepening} className="w-full sm:w-auto">
+                  {isDeepening ? "詳細化中..." : "もっと詳しく"}
+                </Button>
+              )}
+
+              {!!deepenError && (
+                <div className="w-full rounded-lg border border-border/60 bg-background/70 backdrop-blur-sm px-4 py-3 text-sm text-muted-foreground">
+                  {deepenError}
+                </div>
+              )}
+            </div>
+          </div>
+
           <ShareSection
             serviceName={idea.serviceName}
             concept={idea.concept}
