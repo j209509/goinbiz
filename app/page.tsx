@@ -15,8 +15,8 @@ import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
 const LOADING_STEPS = [
-  { text: "掛け算中...", duration: 3000 },
-  { text: "事業化中...", duration: 6000 },
+  { text: "掛け算中...", duration: 800 },
+  { text: "事業化中...", duration: 1000 },
   { text: "採点中...", duration: 700 },
 ]
 
@@ -147,15 +147,16 @@ export default function Page() {
     runStep()
   }, [word1, word2])
 
-  const canDeepen =
-    !!idea &&
-    !isGenerating &&
-    !isDeepening &&
-    !idea.executionPlan &&
-    !idea.costEstimate &&
-    !idea.channelStrategy &&
-    !idea.techStack &&
-    !idea.riskAndFailurePatterns
+  const hasDeep =
+    !!idea?.executionPlan ||
+    !!idea?.costEstimate ||
+    !!idea?.channelStrategy ||
+    !!idea?.techStack ||
+    !!idea?.riskAndFailurePatterns
+
+  // ボタンは「深掘り未実行」の間は表示したままにして、
+  // クリック後は disabled + 文言変更で“待ち”を分かるようにする
+  const showDeepenButton = !!idea && !isGenerating && !hasDeep
 
   const handleDeepen = useCallback(() => {
     if (!idea) return
@@ -230,17 +231,18 @@ export default function Page() {
           </div>
           <ResultSection idea={idea} />
 
-          <div className="max-w-4xl mx-auto px-4 mt-6 pb-10 relative isolate z-50">
-            <div className="flex flex-col items-center gap-3 relative z-50 pointer-events-auto">
-              {canDeepen && (
-                <Button
-                  type="button"
-                  onClick={handleDeepen}
-                  disabled={isDeepening}
-                  className="w-full sm:w-auto relative z-50 pointer-events-auto"
-                >
-                  {isDeepening ? "生成中..." : "このアイデアを本気で事業化する"}
+          <div className="max-w-4xl mx-auto px-4 mt-6 pb-10">
+            <div className="relative isolate z-20 flex flex-col items-center gap-3">
+              {showDeepenButton && (
+                <Button onClick={handleDeepen} disabled={isDeepening} className="w-full sm:w-auto">
+                  {isDeepening ? "事業化プラン作成中..." : "このアイデアを本気で事業化する"}
                 </Button>
+              )}
+
+              {showDeepenButton && isDeepening && (
+                <div className="w-full sm:w-auto rounded-lg border border-border/60 bg-background/70 backdrop-blur-sm px-4 py-3 text-sm text-muted-foreground">
+                  {"作成中です。完了まで数秒かかる場合があります。"}
+                </div>
               )}
 
               {!!deepenError && (
