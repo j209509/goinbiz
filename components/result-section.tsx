@@ -251,7 +251,9 @@ function DetailBlock({ label, content }: { label: string; content: string }) {
       <span className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
         {label}
       </span>
-      <p className="text-sm text-foreground leading-relaxed">{content}</p>
+      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
+        {content}
+      </p>
     </div>
   )
 }
