@@ -41,7 +41,7 @@ export function HeroSection({
     <section className="relative z-10 flex flex-col items-center gap-12 pt-28 pb-20 px-4">
       {/* Title */}
       <div className="flex flex-col items-center gap-5 text-center max-w-2xl">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground text-balance leading-[1.1]">
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground text-balance leading-[1.1]">
           {"関係ない2つを、"}
           <br />
           <span className="bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
