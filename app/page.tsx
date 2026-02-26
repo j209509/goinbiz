@@ -15,8 +15,8 @@ import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
 const LOADING_STEPS = [
-  { text: "掛け算中...", duration: 2000 },
-  { text: "事業化中...", duration: 5000 },
+  { text: "掛け算中...", duration: 800 },
+  { text: "事業化中...", duration: 1000 },
   { text: "採点中...", duration: 700 },
 ]
 
@@ -230,17 +230,16 @@ export default function Page() {
           </div>
           <ResultSection idea={idea} />
 
-          /* NOTE: -mt (negative margin) can cause the button to be covered by the section above on some layouts.
-              Keep this block in normal flow and raise z-index so it is always clickable. */
-          <div className="max-w-4xl mx-auto px-4 mt-6 pb-10 relative z-20">
-            <div className="flex flex-col items-center gap-3">
+          <div className="max-w-4xl mx-auto px-4 mt-6 pb-10 relative isolate z-50">
+            <div className="flex flex-col items-center gap-3 relative z-50 pointer-events-auto">
               {canDeepen && (
                 <Button
+                  type="button"
                   onClick={handleDeepen}
                   disabled={isDeepening}
-                  className="w-full sm:w-auto relative z-30 pointer-events-auto"
+                  className="w-full sm:w-auto relative z-50 pointer-events-auto"
                 >
-                  {isDeepening ? "詳細化中..." : "このアイデアを本気で事業化する"}
+                  {isDeepening ? "生成中..." : "このアイデアを本気で事業化する"}
                 </Button>
               )}
 
@@ -277,7 +276,7 @@ export default function Page() {
             {"© 2026 Goin Business. All rights reserved."}
           </span>
           <span className="text-xs text-muted-foreground">
-            {"※ 生成されるアイデアはAI/アルゴリズムによります"}
+            {"※ 生成されるアイデアはAI/アルゴリズムによるジョークです"}
           </span>
         </div>
       </footer>
