@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
-import crypto from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 
 type GenerateResponse = {
@@ -29,10 +28,6 @@ function mustStr(v: unknown, name: string): string {
   return v.trim();
 }
 
-function hashOwnerToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
 function clampScore(n: any): number {
   const x = Number(n);
   if (!Number.isFinite(x)) return 0;
@@ -44,13 +39,6 @@ function randomToken(len = 32): string {
   let out = "";
   for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
-}
-
-export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    message: "Use POST with JSON body {wordA, wordB} to generate an idea.",
-  });
 }
 
 export async function POST(req: Request) {
@@ -149,7 +137,7 @@ export async function POST(req: Request) {
       createdAt: FieldValue.serverTimestamp(),
       revealAt: new Date(revealAt),
       privateUntil: new Date(revealAt),
-      ownerTokenHash: hashOwnerToken(ownerToken),
+      ownerToken,
     };
 
     const ref = await db.collection("ideas").add(doc);
@@ -159,7 +147,7 @@ export async function POST(req: Request) {
       result: doc.result,
       score: doc.score,
       revealAt,
-      ownerTokenHash: hashOwnerToken(ownerToken),
+      ownerToken,
     };
 
     return NextResponse.json(resp);
