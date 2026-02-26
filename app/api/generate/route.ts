@@ -35,14 +35,18 @@ function asText(v: any): string {
 }
 
 function normalizeIdea(raw: any): GeneratedIdea {
+  const marketScore = normalizeScore(raw?.marketScore);
+  const profitScore = normalizeScore(raw?.profitScore);
+  const buzzScore = normalizeScore(raw?.buzzScore);
+
   const idea: GeneratedIdea = {
     serviceName: asText(raw?.serviceName),
     concept: asText(raw?.concept),
     target: asText(raw?.target),
     revenueModel: asText(raw?.revenueModel),
-    marketScore: normalizeScore(raw?.marketScore),
-    profitScore: normalizeScore(raw?.profitScore),
-    buzzScore: normalizeScore(raw?.buzzScore),
+    marketScore,
+    profitScore,
+    buzzScore,
     overallScore: Math.round(marketScore * 0.4 + profitScore * 0.4 + buzzScore * 0.2),
     mvp: asText(raw?.mvp),
     // UI 側の期待キーに合わせる（旧キーが来ても吸収）
