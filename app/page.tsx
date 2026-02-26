@@ -1,5 +1,8 @@
 "use client"
 
+// ビルド時の静的プリレンダリングを避ける（prerender で落ちるのを回避）
+export const dynamic = "force-dynamic"
+
 import { useState, useCallback, useRef, useEffect } from "react"
 import { HeroSection } from "@/components/hero-section"
 import { ProtectionStatusCard } from "@/components/protection-status-card"
@@ -7,6 +10,7 @@ import { ResultSection } from "@/components/result-section"
 import { ShareSection } from "@/components/share-section"
 import { CommunitySection } from "@/components/community-section"
 import { Separator } from "@/components/ui/separator"
+import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
 const LOADING_STEPS = [
@@ -21,54 +25,32 @@ export default function Page() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [loadingStep, setLoadingStep] = useState("")
   const [idea, setIdea] = useState<GeneratedIdea | null>(null)
-  const [meta, setMeta] = useState<{ id: string; publicStatus: string; revealAt?: string | null } | null>(null)
   const [resultKey, setResultKey] = useState(0)
   const resultRef = useRef<HTMLDivElement>(null)
 
-  const handleGenerate = useCallback(async () => {
-    const a = word1.trim()
-    const b = word2.trim()
-
-    if (!a || !b) {
-      setError("2つとも入力してください")
-      return
-    }
-
-    setError("")
+  const handleGenerate = useCallback(() => {
+    if (!word1.trim() || !word2.trim()) return
     setIsGenerating(true)
-    setLoadingStep("")
     setIdea(null)
-    setMeta(null)
-    setResultKey(Date.now())
 
-    try {
-      for (const step of LOADING_STEPS) {
-        setLoadingStep(step.text)
-        await new Promise((r) => setTimeout(r, step.duration))
+    let stepIndex = 0
+
+    const runStep = () => {
+      if (stepIndex < LOADING_STEPS.length) {
+        setLoadingStep(LOADING_STEPS[stepIndex].text)
+        const dur = LOADING_STEPS[stepIndex].duration
+        stepIndex++
+        setTimeout(runStep, dur)
+      } else {
+        const generated = generateIdea(word1, word2)
+        setIdea(generated)
+        setResultKey((k) => k + 1)
+        setIsGenerating(false)
+        setLoadingStep("")
       }
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wordA: a, wordB: b }),
-      })
-
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok || !data?.ok) {
-        const msg = data?.error || `Request failed (${res.status})`
-        throw new Error(msg)
-      }
-
-      setIdea(data.idea)
-      setMeta({ id: data.id, publicStatus: data.publicStatus, revealAt: data.revealAt ?? null })
-      setLoadingStep("")
-    } catch (e: any) {
-      setError(e?.message || "エラーが発生しました")
-      setLoadingStep("")
-    } finally {
-      setIsGenerating(false)
     }
+
+    runStep()
   }, [word1, word2])
 
   // Scroll to results when generated
@@ -98,10 +80,6 @@ export default function Page() {
       </header>
 
       {/* Hero + Input */}
-      {error ? (
-        <div className="mx-auto max-w-xl px-4 pt-4 text-sm text-red-600">{error}</div>
-      ) : null}
-
       <HeroSection
         word1={word1}
         word2={word2}
@@ -116,7 +94,7 @@ export default function Page() {
       {idea && (
         <div ref={resultRef} key={resultKey}>
           <div className="max-w-4xl mx-auto px-4 pb-4">
-            <ProtectionStatusCard publicStatus={meta?.publicStatus} revealAt={meta?.revealAt ?? undefined} />
+            <ProtectionStatusCard />
           </div>
           <ResultSection idea={idea} />
           <ShareSection
