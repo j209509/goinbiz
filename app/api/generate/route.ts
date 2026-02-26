@@ -43,7 +43,7 @@ function normalizeIdea(raw: any): GeneratedIdea {
     marketScore: normalizeScore(raw?.marketScore),
     profitScore: normalizeScore(raw?.profitScore),
     buzzScore: normalizeScore(raw?.buzzScore),
-    overallScore: normalizeScore(raw?.overallScore),
+    overallScore: Math.round(marketScore * 0.4 + profitScore * 0.4 + buzzScore * 0.2),
     mvp: asText(raw?.mvp),
     // UI 側の期待キーに合わせる（旧キーが来ても吸収）
     monetize: asText(raw?.monetize ?? raw?.monetization),
