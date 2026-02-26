@@ -230,10 +230,16 @@ export default function Page() {
           </div>
           <ResultSection idea={idea} />
 
-          <div className="max-w-4xl mx-auto px-4 -mt-10 pb-10">
+          /* NOTE: -mt (negative margin) can cause the button to be covered by the section above on some layouts.
+              Keep this block in normal flow and raise z-index so it is always clickable. */
+          <div className="max-w-4xl mx-auto px-4 mt-6 pb-10 relative z-20">
             <div className="flex flex-col items-center gap-3">
               {canDeepen && (
-                <Button onClick={handleDeepen} disabled={isDeepening} className="w-full sm:w-auto">
+                <Button
+                  onClick={handleDeepen}
+                  disabled={isDeepening}
+                  className="w-full sm:w-auto relative z-30 pointer-events-auto"
+                >
                   {isDeepening ? "詳細化中..." : "もっと詳しく"}
                 </Button>
               )}
