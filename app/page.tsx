@@ -15,8 +15,8 @@ import { generateIdea } from "@/lib/generate-idea"
 import type { GeneratedIdea } from "@/lib/types"
 
 const LOADING_STEPS = [
-  { text: "掛け算中...", duration: 800 },
-  { text: "事業化中...", duration: 1000 },
+  { text: "掛け算中...", duration: 3000 },
+  { text: "事業化中...", duration: 6000 },
   { text: "採点中...", duration: 700 },
 ]
 
