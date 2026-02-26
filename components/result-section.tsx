@@ -125,6 +125,13 @@ interface ResultSectionProps {
 }
 
 export function ResultSection({ idea }: ResultSectionProps) {
+  const hasDeep =
+    !!idea.executionPlan ||
+    !!idea.costEstimate ||
+    !!idea.channelStrategy ||
+    !!idea.techStack ||
+    !!idea.riskAndFailurePatterns
+
   return (
     <section className="relative z-10 flex flex-col gap-6 px-4 w-full max-w-4xl mx-auto pb-16">
       {/* Score Card - Full Width, Most Prominent */}
@@ -198,6 +205,39 @@ export function ResultSection({ idea }: ResultSectionProps) {
             <DetailBlock label="拡張アイデア" content={idea.expansion} />
             <Separator />
             <DetailBlock label="初期アクションプラン" content={idea.actionPlan} />
+
+            {hasDeep && (
+              <>
+                <Separator />
+                {!!idea.executionPlan && (
+                  <>
+                    <DetailBlock label="実行ロードマップ" content={idea.executionPlan} />
+                    <Separator />
+                  </>
+                )}
+                {!!idea.costEstimate && (
+                  <>
+                    <DetailBlock label="初期コストと採算" content={idea.costEstimate} />
+                    <Separator />
+                  </>
+                )}
+                {!!idea.channelStrategy && (
+                  <>
+                    <DetailBlock label="販売チャネル" content={idea.channelStrategy} />
+                    <Separator />
+                  </>
+                )}
+                {!!idea.techStack && (
+                  <>
+                    <DetailBlock label="技術スタック" content={idea.techStack} />
+                    <Separator />
+                  </>
+                )}
+                {!!idea.riskAndFailurePatterns && (
+                  <DetailBlock label="失敗パターンと回避" content={idea.riskAndFailurePatterns} />
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
