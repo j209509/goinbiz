@@ -140,7 +140,6 @@ async function generateWithOpenAI(word1: string, word2: string): Promise<Generat
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      temperature: 0.8,
     }),
   });
 
@@ -250,7 +249,6 @@ async function generateTopIdeaWithSelfReview(
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      temperature: 0.9,
     }),
   });
 
