@@ -134,16 +134,13 @@ export function ResultSection({ idea }: ResultSectionProps) {
 
   return (
     <section className="relative z-10 flex flex-col gap-6 px-4 w-full max-w-4xl mx-auto pb-16">
-      {/* Score Card - Full Width, Most Prominent */}
       <Card className="animate-slide-up shadow-lg border-border/60">
         <CardContent className="py-8">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-            {/* Overall Score Ring */}
             <div className="shrink-0">
               <OverallScoreRing score={idea.overallScore} />
             </div>
 
-            {/* Score Bars */}
             <div className="flex-1 w-full flex flex-col gap-5">
               <ScoreBar label="市場性" score={idea.marketScore} delay="0.3s" />
               <ScoreBar label="収益性" score={idea.profitScore} delay="0.5s" />
@@ -154,7 +151,6 @@ export function ResultSection({ idea }: ResultSectionProps) {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: Overview */}
         <Card className="animate-slide-up animate-delay-1 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">{"事業概要"}</CardTitle>
@@ -176,12 +172,19 @@ export function ResultSection({ idea }: ResultSectionProps) {
               </span>
               <p className="text-sm text-foreground leading-relaxed">{idea.concept}</p>
             </div>
+
             <div className="flex flex-col gap-1">
               <span className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
                 {"ターゲット"}
               </span>
-              <Badge variant="outline" className="w-fit text-xs">{idea.target}</Badge>
+              <Badge
+                variant="outline"
+                className="w-full max-w-full min-w-0 whitespace-normal break-words overflow-visible justify-start items-start text-left h-auto"
+              >
+                {idea.target}
+              </Badge>
             </div>
+
             <div className="flex flex-col gap-1">
               <span className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
                 {"収益モデル"}
@@ -191,7 +194,6 @@ export function ResultSection({ idea }: ResultSectionProps) {
           </CardContent>
         </Card>
 
-        {/* Card 2: Details */}
         <Card className="animate-slide-up animate-delay-2 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">{"詳細プラン"}</CardTitle>
