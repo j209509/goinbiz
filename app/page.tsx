@@ -19,6 +19,10 @@ const LOADING_STEPS = [
   { text: "採点中...", duration: 700 },
 ]
 
+// API が落ちた時にローカル生成へフォールバックするか（デフォルトOFF）
+// 例: NEXT_PUBLIC_USE_LOCAL_FALLBACK=1 のときだけ有効
+const USE_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_USE_LOCAL_FALLBACK === "1"
+
 async function generateIdeaViaApi(word1: string, word2: string): Promise<GeneratedIdea> {
   const r = await fetch("/api/generate", {
     method: "POST",
@@ -41,12 +45,15 @@ export default function Page() {
   const [loadingStep, setLoadingStep] = useState("")
   const [idea, setIdea] = useState<GeneratedIdea | null>(null)
   const [resultKey, setResultKey] = useState(0)
+  const [errorMsg, setErrorMsg] = useState<string>("")
   const resultRef = useRef<HTMLDivElement>(null)
 
   const handleGenerate = useCallback(() => {
     if (!word1.trim() || !word2.trim()) return
+
     setIsGenerating(true)
     setIdea(null)
+    setErrorMsg("")
 
     let stepIndex = 0
 
@@ -63,10 +70,20 @@ export default function Page() {
         try {
           const generated = await generateIdeaViaApi(word1, word2)
           setIdea(generated)
-        } catch {
-          // API が落ちた時はローカル生成にフォールバック（デモ維持）
-          const fallback = generateIdea(word1, word2)
-          setIdea(fallback)
+        } catch (e: any) {
+          const msg = e?.message ? String(e.message) : "API error"
+
+          if (USE_LOCAL_FALLBACK) {
+            const fallback = generateIdea(word1, word2)
+            setIdea(fallback)
+            setErrorMsg(`API失敗のためローカル生成に切り替えました: ${msg}`)
+          } else {
+            setIdea(null)
+            setErrorMsg(`生成に失敗しました: ${msg}`)
+          }
+
+          // 開発時に原因が追えるように残す
+          console.error("/api/generate failed:", e)
         } finally {
           setResultKey((k) => k + 1)
           setIsGenerating(false)
@@ -114,6 +131,15 @@ export default function Page() {
         isGenerating={isGenerating}
         loadingStep={loadingStep}
       />
+
+      {/* Error */}
+      {!!errorMsg && (
+        <div className="max-w-4xl mx-auto px-4 -mt-4 pb-4">
+          <div className="rounded-lg border border-border/60 bg-background/70 backdrop-blur-sm px-4 py-3 text-sm text-muted-foreground">
+            {errorMsg}
+          </div>
+        </div>
+      )}
 
       {/* Result Section */}
       {idea && (
