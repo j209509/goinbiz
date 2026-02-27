@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableCell, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, TrendingUp, Clock, Flame, Globe } from "lucide-react";
@@ -121,15 +121,24 @@ export function CommunitySection() {
     const src = Array.isArray(items) ? [...items] : [];
     switch (sortKey) {
       case "score":
-        return src.sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
+        return src.sort(
+          (a, b) =>
+            (b.overallScore ?? 0) - (a.overallScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
+        );
       case "buzz":
-        return src.sort((a, b) => (b.buzzScore ?? 0) - (a.buzzScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
+        return src.sort(
+          (a, b) => (b.buzzScore ?? 0) - (a.buzzScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
+        );
       case "new":
         return src.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
       default:
         return src;
     }
   }, [items, sortKey]);
+
+  const displayIdeas = useMemo(() => {
+    return sortedIdeas.slice(0, 9);
+  }, [sortedIdeas]);
 
   const rankingRows = useMemo(() => {
     return ranking.map((item, i) => ({
@@ -145,7 +154,9 @@ export function CommunitySection() {
     <section className="relative z-10 flex flex-col gap-20 px-4 w-full max-w-4xl mx-auto pb-24">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col items-center gap-3">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">{"みんなのアイデア"}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">
+            {"みんなのアイデア"}
+          </h2>
           <p className="text-sm text-muted-foreground">{"他のユーザーが生成したアイデア"}</p>
         </div>
 
@@ -169,7 +180,7 @@ export function CommunitySection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(loading ? Array.from({ length: 6 }).map((_, i) => i) : sortedIdeas).map((item: any, i: number) => {
+          {(loading ? Array.from({ length: 9 }).map((_, i) => i) : displayIdeas).map((item: any, i: number) => {
             if (typeof item === "number") {
               return (
                 <Card key={`s-${item}`} className="animate-pulse shadow-sm">
@@ -240,7 +251,9 @@ export function CommunitySection() {
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-2.5">
             <Trophy className="size-5 text-foreground" />
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">{"スコアランキング"}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">
+              {"スコアランキング"}
+            </h2>
           </div>
           <p className="text-sm text-muted-foreground">{"総合スコア上位のアイデア"}</p>
         </div>
