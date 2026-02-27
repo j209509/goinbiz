@@ -1,260 +1,282 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from "react"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Heart, Trophy, TrendingUp, Clock, Flame, Globe } from "lucide-react"
+import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type SortKey = "score" | "buzz" | "new"
+type PublicIdeaSummary = {
+  id: string;
+  word1: string;
+  word2: string;
+  serviceName: string;
+  concept: string;
+  overallScore: number;
+  marketScore: number;
+  profitScore: number;
+  buzzScore: number;
+  createdAtMs: number | null;
+};
 
-const communityIdeas = [
-  {
-    word1: "金魚",
-    word2: "サブスク",
-    serviceName: "KingyoBox",
-    overallScore: 78,
-    buzzScore: 88,
-    likes: 124,
-    date: "2026/02/25",
-  },
-  {
-    word1: "お葬式",
-    word2: "AI",
-    serviceName: "FarewellAI",
-    overallScore: 85,
-    buzzScore: 72,
-    likes: 98,
-    date: "2026/02/24",
-  },
-  {
-    word1: "ラーメン",
-    word2: "宇宙",
-    serviceName: "CosmicNoodle",
-    overallScore: 62,
-    buzzScore: 95,
-    likes: 203,
-    date: "2026/02/23",
-  },
-  {
-    word1: "猫",
-    word2: "保険",
-    serviceName: "NekoPro",
-    overallScore: 91,
-    buzzScore: 68,
-    likes: 167,
-    date: "2026/02/22",
-  },
-  {
-    word1: "温泉",
-    word2: "ブロックチェーン",
-    serviceName: "OnsenChain",
-    overallScore: 54,
-    buzzScore: 82,
-    likes: 89,
-    date: "2026/02/21",
-  },
-  {
-    word1: "盆栽",
-    word2: "マッチング",
-    serviceName: "BonsaiConnect",
-    overallScore: 73,
-    buzzScore: 76,
-    likes: 145,
-    date: "2026/02/20",
-  },
-]
+type IdeaDetailResponse = {
+  ok: boolean;
+  id: string;
+  word1: string;
+  word2: string;
+  idea: any;
+};
 
-const rankingData = [
-  { rank: 1, word1: "猫", word2: "保険", overallScore: 91, date: "2026/02/25" },
-  { rank: 2, word1: "お葬式", word2: "AI", overallScore: 85, date: "2026/02/24" },
-  { rank: 3, word1: "金魚", word2: "サブスク", overallScore: 78, date: "2026/02/23" },
-  { rank: 4, word1: "盆栽", word2: "マッチング", overallScore: 73, date: "2026/02/22" },
-  { rank: 5, word1: "ラーメン", word2: "宇宙", overallScore: 62, date: "2026/02/21" },
-]
-
-function getScoreBadgeVariant(score: number): "default" | "secondary" | "outline" {
-  if (score >= 80) return "default"
-  if (score >= 60) return "secondary"
-  return "outline"
-}
-
-function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <span className="text-base font-bold text-foreground">{"1"}</span>
-  if (rank === 2) return <span className="text-base font-semibold text-muted-foreground">{"2"}</span>
-  if (rank === 3) return <span className="text-base font-semibold text-muted-foreground">{"3"}</span>
-  return <span className="text-sm text-muted-foreground">{rank}</span>
+function scoreVariant(score: number) {
+  if (score >= 90) return "default";
+  if (score >= 80) return "secondary";
+  return "outline";
 }
 
 export function CommunitySection() {
-  const [sortKey, setSortKey] = useState<SortKey>("score")
+  const [latest, setLatest] = useState<PublicIdeaSummary[]>([]);
+  const [ranking, setRanking] = useState<PublicIdeaSummary[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sortedIdeas = useMemo(() => {
-    const sorted = [...communityIdeas]
-    switch (sortKey) {
-      case "score":
-        return sorted.sort((a, b) => b.overallScore - a.overallScore)
-      case "buzz":
-        return sorted.sort((a, b) => b.likes - a.likes)
-      case "new":
-        return sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      default:
-        return sorted
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<IdeaDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      try {
+        setLoading(true);
+        const [a, b] = await Promise.all([
+          fetch("/api/public/ideas?mode=latest&limit=12").then((r) => r.json()),
+          fetch("/api/public/ideas?mode=ranking&limit=10").then((r) => r.json()),
+        ]);
+        if (cancelled) return;
+        setLatest(Array.isArray(a?.items) ? a.items : []);
+        setRanking(Array.isArray(b?.items) ? b.items : []);
+      } catch {
+        if (cancelled) return;
+        setLatest([]);
+        setRanking([]);
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
     }
-  }, [sortKey])
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load(id: string) {
+      try {
+        setDetailLoading(true);
+        setDetail(null);
+        const res = await fetch(`/api/ideas/get?ideaId=${encodeURIComponent(id)}`).then((r) => r.json());
+        if (cancelled) return;
+        if (res?.ok) setDetail(res);
+      } finally {
+        if (cancelled) return;
+        setDetailLoading(false);
+      }
+    }
+    if (selectedId) load(selectedId);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
+
+  const rankingRows = useMemo(() => {
+    return ranking.map((item, i) => ({
+      rank: i + 1,
+      id: item.id,
+      title: `${item.word1} × ${item.word2}`,
+      score: item.overallScore,
+      date: item.createdAtMs ? new Date(item.createdAtMs).toLocaleDateString() : "",
+    }));
+  }, [ranking]);
 
   return (
-    <section className="relative z-10 flex flex-col gap-20 px-4 w-full max-w-4xl mx-auto pb-24">
-      {/* Community Ideas */}
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col items-center gap-3">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">
-            {"みんなのアイデア"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {"他のユーザーが生成したアイデア"}
+    <section className="py-20 px-4 border-t">
+      <div className="max-w-6xl mx-auto space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-3xl font-bold tracking-tight">みんなのアイデア</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            公開されたアイデアがここに並びます（生成後24時間、または「今すぐ公開」）。
           </p>
         </div>
 
-        {/* Sort Tabs */}
-        <div className="flex justify-center">
-          <Tabs value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-            <TabsList>
-              <TabsTrigger value="score" className="gap-1.5 text-xs">
-                <TrendingUp className="size-3.5" />
-                {"高スコア"}
-              </TabsTrigger>
-              <TabsTrigger value="buzz" className="gap-1.5 text-xs">
-                <Flame className="size-3.5" />
-                {"バズ度"}
-              </TabsTrigger>
-              <TabsTrigger value="new" className="gap-1.5 text-xs">
-                <Clock className="size-3.5" />
-                {"新着"}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold">新着</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(loading ? Array.from({ length: 4 }).map((_, i) => i) : latest).map((item: any) => {
+              if (typeof item === "number") {
+                return (
+                  <Card key={`s-${item}`} className="animate-pulse">
+                    <CardHeader className="pb-3">
+                      <div className="h-5 w-3/4 bg-muted rounded" />
+                      <div className="h-4 w-1/3 bg-muted rounded" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-4 w-full bg-muted rounded" />
+                      <div className="h-4 w-5/6 bg-muted rounded mt-2" />
+                    </CardContent>
+                  </Card>
+                );
+              }
 
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedIdeas.map((idea, i) => (
-            <Card
-              key={`${idea.serviceName}-${i}`}
-              className="group hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
-            >
-              <CardContent className="flex flex-col gap-4 pt-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground tracking-wide">
-                    {idea.word1}
-                    {" x "}
-                    {idea.word2}
-                  </span>
-                  <Badge variant={getScoreBadgeVariant(idea.overallScore)} className="text-xs tabular-nums">
-                    {idea.overallScore}
-                    {"/100"}
-                  </Badge>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-foreground group-hover:text-foreground/80 transition-colors">
-                      {idea.serviceName}
-                    </span>
-                    <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 h-5 text-muted-foreground border-border/60">
-                      <Globe className="size-2.5" />
-                      {"公開中"}
-                    </Badge>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {idea.date}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Heart className="size-3.5" />
-                  <span className="text-xs tabular-nums">{idea.likes}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Ranking */}
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <Trophy className="size-5 text-foreground" />
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground text-balance text-center tracking-tight">
-              {"スコアランキング"}
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {"総合スコア上位のアイデア"}
-          </p>
-        </div>
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16 text-center">{"#"}</TableHead>
-                  <TableHead>{"アイデア"}</TableHead>
-                  <TableHead className="w-24 text-center">{"スコア"}</TableHead>
-                  <TableHead className="w-32 text-center hidden md:table-cell">
-                    {"生成日"}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rankingData.map((item) => (
-                  <TableRow key={item.rank} className="group">
-                    <TableCell className="text-center">
-                      <RankBadge rank={item.rank} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">
-                          {item.word1}
-                          {" x "}
-                          {item.word2}
-                        </span>
-                        <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 h-5 text-muted-foreground border-border/60">
-                          <Globe className="size-2.5" />
-                          {"公開中"}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={getScoreBadgeVariant(item.overallScore)}
-                        className="text-xs tabular-nums"
-                      >
+              const title = `${item.word1} × ${item.word2}`;
+              return (
+                <Card
+                  key={item.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedId(item.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg leading-tight">{title}</CardTitle>
+                      <Badge variant={scoreVariant(item.overallScore)} className="shrink-0 tabular-nums">
                         {item.overallScore}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center text-muted-foreground text-sm hidden md:table-cell">
-                      {item.date}
-                    </TableCell>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{item.serviceName}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">{item.concept}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold">ランキング</h3>
+          <Card>
+            <CardHeader>
+              <CardTitle>スコア上位</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16 text-center">順位</TableHead>
+                    <TableHead>アイデア</TableHead>
+                    <TableHead className="w-24 text-center">スコア</TableHead>
+                    <TableHead className="w-32 text-center hidden md:table-cell">作成日</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {rankingRows.map((row) => (
+                    <TableRow
+                      key={row.rank}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedId(row.id)}
+                    >
+                      <TableCell className="font-medium text-center">{row.rank}</TableCell>
+                      <TableCell className="font-medium">{row.title}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={scoreVariant(row.score)} className="text-xs tabular-nums">
+                          {row.score}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground text-sm hidden md:table-cell">
+                        {row.date}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      <Dialog open={!!selectedId} onOpenChange={(o) => (!o ? setSelectedId(null) : null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {detail?.word1 && detail?.word2 ? `${detail.word1} × ${detail.word2}` : "アイデア詳細"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {detailLoading ? (
+            <div className="space-y-3">
+              <div className="h-5 w-2/3 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-full bg-muted rounded animate-pulse" />
+              <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
+            </div>
+          ) : detail?.idea ? (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">サービス名</p>
+                <p className="text-base">{detail.idea.serviceName}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">総合</p>
+                    <p className="text-2xl tabular-nums">{detail.idea.overallScore}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">市場性</p>
+                    <p className="text-2xl tabular-nums">{detail.idea.marketScore}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">収益性</p>
+                    <p className="text-2xl tabular-nums">{detail.idea.profitScore}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">バズ度</p>
+                    <p className="text-2xl tabular-nums">{detail.idea.buzzScore}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">コンセプト</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.concept}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">ターゲット</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.target}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">収益モデル</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.revenueModel}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">MVP</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.mvp}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">マネタイズ</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.monetize}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">拡張アイデア</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.expansion}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">アクションプラン</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.actionPlan}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">読み込みに失敗しました。</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
-  )
+  );
 }

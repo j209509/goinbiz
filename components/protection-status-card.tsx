@@ -1,51 +1,80 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Shield, Globe, Lock } from "lucide-react"
 
 interface ProtectionStatusCardProps {
-  onPublish?: () => void
-  onExtend?: () => void
+  ideaId: string | null
+  publishAtMs: number | null
+  protectedUntilMs: number | null
+  onUpdated?: (v: { publishAtMs: number; protectedUntilMs: number | null }) => void
 }
 
-function useCountdown(initialSeconds: number) {
-  const [seconds, setSeconds] = useState(initialSeconds)
+function useCountdown(targetMs: number | null) {
+  const [now, setNow] = useState(() => Date.now())
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
-      setSeconds((s) => (s > 0 ? s - 1 : 0))
+      setNow(Date.now())
     }, 1000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [])
 
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
+  const remainSec = Math.max(0, Math.floor(((targetMs ?? now) - now) / 1000))
+  const h = Math.floor(remainSec / 3600)
+  const m = Math.floor((remainSec % 3600) / 60)
+  const s = remainSec % 60
   const pad = (n: number) => n.toString().padStart(2, "0")
 
   return `${pad(h)}:${pad(m)}:${pad(s)}`
 }
 
-export function ProtectionStatusCard({ onPublish, onExtend }: ProtectionStatusCardProps) {
-  const [action, setAction] = useState<"none" | "published" | "extended">("none")
-  const countdown = useCountdown(23 * 3600 + 12 * 60 + 13)
+export function ProtectionStatusCard({ ideaId, publishAtMs, protectedUntilMs, onUpdated }: ProtectionStatusCardProps) {
+  const nowMs = Date.now()
+  const effectivePublishAtMs = useMemo(() => {
+    const base = publishAtMs
+    const prot = protectedUntilMs
+    if (base == null && prot == null) return null
+    if (base == null) return prot
+    if (prot == null) return base
+    return Math.max(base, prot)
+  }, [publishAtMs, protectedUntilMs])
 
-  const handlePublish = () => {
-    setAction("published")
-    onPublish?.()
+  const countdown = useCountdown(effectivePublishAtMs)
+  const isPublic = effectivePublishAtMs != null ? nowMs >= effectivePublishAtMs : false
+  const isProtected = protectedUntilMs != null ? nowMs < protectedUntilMs : false
+
+  const [busy, setBusy] = useState<"" | "publish" | "protect">("")
+  const [err, setErr] = useState<string>("")
+
+  const call = async (action: "publish_now" | "protect_365") => {
+    if (!ideaId) return
+    setErr("")
+    setBusy(action === "publish_now" ? "publish" : "protect")
+    try {
+      const r = await fetch("/api/ideas/visibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ideaId, action }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j?.ok) throw new Error(j?.error || "request failed")
+      onUpdated?.({ publishAtMs: j.publishAtMs, protectedUntilMs: j.protectedUntilMs ?? null })
+    } catch (e: any) {
+      setErr(e?.message ?? String(e))
+    } finally {
+      setBusy("")
+    }
   }
 
-  const handleExtend = () => {
-    setAction("extended")
-    onExtend?.()
-  }
+  if (!ideaId) return null
 
   /* --- Published state --- */
-  if (action === "published") {
+  if (isPublic) {
     return (
       <div className="relative z-10 animate-slide-up">
         <div className="h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
@@ -60,7 +89,7 @@ export function ProtectionStatusCard({ onPublish, onExtend }: ProtectionStatusCa
   }
 
   /* --- Extended state --- */
-  if (action === "extended") {
+  if (isProtected) {
     return (
       <div className="relative z-10 animate-slide-up">
         <div className="h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
@@ -103,6 +132,9 @@ export function ProtectionStatusCard({ onPublish, onExtend }: ProtectionStatusCa
                     {countdown}
                   </span>
                 </div>
+                {err ? (
+                  <p className="text-xs text-red-600">{err}</p>
+                ) : null}
               </div>
             </div>
 
@@ -111,16 +143,18 @@ export function ProtectionStatusCard({ onPublish, onExtend }: ProtectionStatusCa
               <Button
                 variant="outline"
                 className="min-w-[200px] whitespace-nowrap cursor-pointer h-10 text-sm"
-                onClick={handlePublish}
+                onClick={() => call("publish_now")}
+                disabled={busy !== ""}
               >
-                {"今すぐ公開する"}
+                {busy === "publish" ? "処理中..." : "今すぐ公開する"}
               </Button>
               <div className="flex flex-col gap-1">
                 <Button
                   className="min-w-[200px] whitespace-nowrap cursor-pointer h-10 text-sm"
-                  onClick={handleExtend}
+                  onClick={() => call("protect_365")}
+                  disabled={busy !== ""}
                 >
-                  {"1年間保護する"}
+                  {busy === "protect" ? "処理中..." : "1年間保護する"}
                   <span className="ml-1.5 opacity-70">{"980円"}</span>
                 </Button>
                 <span className="text-[11px] text-muted-foreground md:text-right">

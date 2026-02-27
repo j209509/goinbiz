@@ -47,7 +47,9 @@ function normalizeIdea(raw: any): GeneratedIdea {
     marketScore,
     profitScore,
     buzzScore,
-    overallScore: Math.round(marketScore * 0.4 + profitScore * 0.4 + buzzScore * 0.2),
+    // 重み付け平均（収益性をやや重め）
+    // market 35% / profit 45% / buzz 20%
+    overallScore: Math.round(marketScore * 0.35 + profitScore * 0.45 + buzzScore * 0.2),
     mvp: asText(raw?.mvp),
     // UI 側の期待キーに合わせる（旧キーが来ても吸収）
     monetize: asText(raw?.monetize ?? raw?.monetization),
@@ -301,6 +303,9 @@ async function handleGenerate(word1Raw: string, word2Raw: string) {
 
   // Firestore 保存（失敗しても生成結果は返す）
   let ideaId: string | null = null;
+  const nowMs = Date.now();
+  const publishAtMs = nowMs + 24 * 60 * 60 * 1000; // 24h later
+  let protectedUntilMs: number | null = null;
   try {
     const ref = await db.collection("ideas").add({
       word1,
@@ -308,6 +313,9 @@ async function handleGenerate(word1Raw: string, word2Raw: string) {
       idea,
       pickReason,
       createdAt: FieldValue.serverTimestamp(),
+      createdAtMs: nowMs,
+      publishAtMs,
+      protectedUntilMs,
       source: "openai",
       model: usedModel,
     });
@@ -316,7 +324,7 @@ async function handleGenerate(word1Raw: string, word2Raw: string) {
     // ignore
   }
 
-  return NextResponse.json({ ok: true, idea, ideaId });
+  return NextResponse.json({ ok: true, idea, ideaId, publishAtMs, protectedUntilMs });
 }
 
 export async function POST(req: Request) {

@@ -27,7 +27,7 @@ const USE_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_USE_LOCAL_FALLBACK === "1"
 async function generateIdeaViaApi(
   word1: string,
   word2: string
-): Promise<{ idea: GeneratedIdea; ideaId?: string }> {
+): Promise<{ idea: GeneratedIdea; ideaId?: string; publishAtMs: number | null; protectedUntilMs: number | null }> {
   const r = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -43,6 +43,8 @@ async function generateIdeaViaApi(
   return {
     idea: data.idea as GeneratedIdea,
     ideaId: typeof data.ideaId === "string" ? data.ideaId : undefined,
+    publishAtMs: typeof data.publishAtMs === "number" ? data.publishAtMs : null,
+    protectedUntilMs: typeof data.protectedUntilMs === "number" ? data.protectedUntilMs : null,
   }
 }
 
@@ -95,6 +97,8 @@ export default function Page() {
   const [loadingStep, setLoadingStep] = useState("")
   const [idea, setIdea] = useState<GeneratedIdea | null>(null)
   const [ideaId, setIdeaId] = useState<string | undefined>(undefined)
+  const [publishAtMs, setPublishAtMs] = useState<number | null>(null)
+  const [protectedUntilMs, setProtectedUntilMs] = useState<number | null>(null)
   const [resultKey, setResultKey] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string>("")
   const [isDeepening, setIsDeepening] = useState(false)
@@ -106,6 +110,8 @@ export default function Page() {
     setIsGenerating(true)
     setIdea(null)
     setIdeaId(undefined)
+    setPublishAtMs(null)
+    setProtectedUntilMs(null)
     setErrorMsg("")
     setDeepenError("")
 
@@ -125,6 +131,8 @@ export default function Page() {
           const generated = await generateIdeaViaApi(word1, word2)
           setIdea(generated.idea)
           setIdeaId(generated.ideaId)
+          setPublishAtMs(generated.publishAtMs)
+          setProtectedUntilMs(generated.protectedUntilMs)
         } catch (e: any) {
           const msg = e?.message ? String(e.message) : "API error"
           if (USE_LOCAL_FALLBACK) {
@@ -227,7 +235,15 @@ export default function Page() {
       {idea && (
         <div ref={resultRef} key={resultKey}>
           <div className="max-w-4xl mx-auto px-4 pb-4">
-            <ProtectionStatusCard />
+            <ProtectionStatusCard
+              ideaId={ideaId ?? null}
+              publishAtMs={publishAtMs}
+              protectedUntilMs={protectedUntilMs}
+              onUpdated={(v) => {
+                setPublishAtMs(v.publishAtMs)
+                setProtectedUntilMs(v.protectedUntilMs)
+              }}
+            />
           </div>
           <ResultSection idea={idea} />
 
