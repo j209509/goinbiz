@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableCell, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, TrendingUp, Clock, Flame, Globe } from "lucide-react";
@@ -66,6 +67,141 @@ function pickText(obj: any, keys: string[]): string {
     if (typeof v === "string" && v.trim()) return v;
   }
   return "";
+}
+
+function clampScore(n: any) {
+  const v = Number(n ?? 0);
+  if (Number.isNaN(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
+function AnimatedNumber({ target, duration = 900 }: { target: number; duration?: number }) {
+  const safeTarget = clampScore(target);
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const from = current;
+    const delta = safeTarget - from;
+
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setCurrent(Math.round(from + delta * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeTarget, duration]);
+
+  return <>{current}</>;
+}
+
+function OverallScoreRing({ score }: { score: number }) {
+  const s = clampScore(score);
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+  const targetOffset = circumference - (s / 100) * circumference;
+
+  const [offset, setOffset] = useState(circumference);
+
+  useEffect(() => {
+    const t = setTimeout(() => setOffset(targetOffset), 30);
+    return () => clearTimeout(t);
+  }, [targetOffset]);
+
+  const ringColor =
+    s >= 80 ? "text-emerald-500" : s >= 60 ? "text-amber-500" : "text-red-400";
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative size-36">
+        <svg className="size-full -rotate-90" viewBox="0 0 100 100">
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            className="text-muted/60"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className={ringColor}
+            style={
+              {
+                transition: "stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+              } as CSSProperties
+            }
+          />
+        </svg>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-4xl font-bold text-foreground tabular-nums">
+            <AnimatedNumber target={s} duration={900} />
+          </span>
+          <span className="text-xs text-muted-foreground font-medium">{"/ 100"}</span>
+        </div>
+      </div>
+
+      <span className="text-sm font-semibold text-foreground tracking-wide">{"総合スコア"}</span>
+    </div>
+  );
+}
+
+function ScoreBar({
+  label,
+  score,
+  delayMs,
+}: {
+  label: string;
+  score: number;
+  delayMs: number;
+}) {
+  const s = clampScore(score);
+  const barColor = s >= 80 ? "bg-emerald-500" : s >= 60 ? "bg-amber-500" : "bg-red-400";
+
+  const [w, setW] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setW(s), Math.max(0, delayMs));
+    return () => clearTimeout(t);
+  }, [s, delayMs]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground font-medium">{label}</span>
+        <span className="text-sm font-bold text-foreground tabular-nums">
+          <AnimatedNumber target={s} duration={800} />
+        </span>
+      </div>
+
+      <div className="h-2.5 w-full rounded-full bg-muted/60 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${barColor}`}
+          style={
+            {
+              width: `${w}%`,
+              transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+            } as CSSProperties
+          }
+        />
+      </div>
+    </div>
+  );
 }
 
 export function CommunitySection() {
@@ -132,11 +268,14 @@ export function CommunitySection() {
       case "score":
         return src.sort(
           (a, b) =>
-            (b.overallScore ?? 0) - (a.overallScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
+            (b.overallScore ?? 0) - (a.overallScore ?? 0) ||
+            (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
         );
       case "buzz":
         return src.sort(
-          (a, b) => (b.buzzScore ?? 0) - (a.buzzScore ?? 0) || (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
+          (a, b) =>
+            (b.buzzScore ?? 0) - (a.buzzScore ?? 0) ||
+            (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
         );
       case "new":
         return src.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
@@ -145,9 +284,7 @@ export function CommunitySection() {
     }
   }, [items, sortKey]);
 
-  const displayIdeas = useMemo(() => {
-    return sortedIdeas.slice(0, 9);
-  }, [sortedIdeas]);
+  const displayIdeas = useMemo(() => sortedIdeas.slice(0, 9), [sortedIdeas]);
 
   const rankingRows = useMemo(() => {
     return ranking.map((item, i) => ({
@@ -223,6 +360,7 @@ export function CommunitySection() {
 
             const title = `${item.word1} × ${item.word2}`;
             const date = fmtDate(item.createdAtMs);
+
             return (
               <Card
                 key={item.id ?? `${title}-${i}`}
@@ -291,6 +429,7 @@ export function CommunitySection() {
                   <TableHead className="w-32 text-center hidden md:table-cell">{"生成日"}</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {rankingRows.map((row) => (
                   <TableRow
@@ -332,7 +471,9 @@ export function CommunitySection() {
       <Dialog open={!!selectedId} onOpenChange={(o) => (!o ? setSelectedId(null) : null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>{detail?.word1 && detail?.word2 ? `${detail.word1} × ${detail.word2}` : "アイデア詳細"}</DialogTitle>
+            <DialogTitle>
+              {detail?.word1 && detail?.word2 ? `${detail.word1} × ${detail.word2}` : "アイデア詳細"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="max-h-[75vh] overflow-y-auto pr-1 [@supports(-webkit-overflow-scrolling:touch)]:[-webkit-overflow-scrolling:touch]">
@@ -349,32 +490,20 @@ export function CommunitySection() {
                   <p className="text-base">{detail.idea.serviceName}</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-xs text-muted-foreground">総合</p>
-                      <p className="text-2xl tabular-nums">{detail.idea.overallScore}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-xs text-muted-foreground">市場性</p>
-                      <p className="text-2xl tabular-nums">{detail.idea.marketScore}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-xs text-muted-foreground">収益性</p>
-                      <p className="text-2xl tabular-nums">{detail.idea.profitScore}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-xs text-muted-foreground">バズ度</p>
-                      <p className="text-2xl tabular-nums">{detail.idea.buzzScore}</p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <Card className="shadow-sm">
+                  <CardContent className="py-6">
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                      <div className="shrink-0">
+                        <OverallScoreRing score={clampScore(detail.idea.overallScore)} />
+                      </div>
+                      <div className="flex-1 w-full flex flex-col gap-5">
+                        <ScoreBar label="市場性" score={clampScore(detail.idea.marketScore)} delayMs={150} />
+                        <ScoreBar label="収益性" score={clampScore(detail.idea.profitScore)} delayMs={250} />
+                        <ScoreBar label="バズ度" score={clampScore(detail.idea.buzzScore)} delayMs={350} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {detailTexts.concept ? (
                   <div className="space-y-2">
