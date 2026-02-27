@@ -59,6 +59,15 @@ function fmtDate(ms: number | null) {
   }
 }
 
+function pickText(obj: any, keys: string[]): string {
+  if (!obj) return "";
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return "";
+}
+
 export function CommunitySection() {
   const [items, setItems] = useState<PublicIdeaSummary[]>([]);
   const [ranking, setRanking] = useState<PublicIdeaSummary[]>([]);
@@ -149,6 +158,19 @@ export function CommunitySection() {
       date: fmtDate(item.createdAtMs),
     }));
   }, [ranking]);
+
+  const detailTexts = useMemo(() => {
+    const idea = detail?.idea;
+    return {
+      concept: pickText(idea, ["concept"]),
+      target: pickText(idea, ["target"]),
+      revenueModel: pickText(idea, ["revenueModel", "monetize", "monetization"]),
+      actionPlan: pickText(idea, ["actionPlan", "actionplan", "plan"]),
+      mvp: pickText(idea, ["mvp"]),
+      expansion: pickText(idea, ["expansion"]),
+      pickReason: pickText(idea, ["pickReason", "reason"]),
+    };
+  }, [detail]);
 
   return (
     <section className="relative z-10 flex flex-col gap-20 px-4 w-full max-w-4xl mx-auto pb-24">
@@ -354,22 +376,54 @@ export function CommunitySection() {
                   </Card>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">コンセプト</p>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.concept}</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">ターゲット</p>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.target}</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">収益モデル</p>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.monetization}</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">実行プラン</p>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.actionPlan}</p>
-                </div>
+                {detailTexts.concept ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">コンセプト</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.concept}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.target ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">ターゲット</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.target}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.revenueModel ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">収益モデル</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.revenueModel}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.actionPlan ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">実行プラン</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.actionPlan}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.mvp ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">MVP</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.mvp}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.expansion ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">拡張</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.expansion}</p>
+                  </div>
+                ) : null}
+
+                {detailTexts.pickReason ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">選定理由</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{detailTexts.pickReason}</p>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">読み込みに失敗しました。</p>
