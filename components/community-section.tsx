@@ -308,71 +308,73 @@ export function CommunitySection() {
       </div>
 
       <Dialog open={!!selectedId} onOpenChange={(o) => (!o ? setSelectedId(null) : null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>{detail?.word1 && detail?.word2 ? `${detail.word1} × ${detail.word2}` : "アイデア詳細"}</DialogTitle>
           </DialogHeader>
 
-          {detailLoading ? (
-            <div className="space-y-3">
-              <div className="h-5 w-2/3 bg-muted rounded animate-pulse" />
-              <div className="h-4 w-full bg-muted rounded animate-pulse" />
-              <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
-            </div>
-          ) : detail?.idea ? (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">サービス名</p>
-                <p className="text-base">{detail.idea.serviceName}</p>
+          <div className="max-h-[75vh] overflow-y-auto pr-1 [@supports(-webkit-overflow-scrolling:touch)]:[-webkit-overflow-scrolling:touch]">
+            {detailLoading ? (
+              <div className="space-y-3">
+                <div className="h-5 w-2/3 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
               </div>
+            ) : detail?.idea ? (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">サービス名</p>
+                  <p className="text-base">{detail.idea.serviceName}</p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground">総合</p>
-                    <p className="text-2xl tabular-nums">{detail.idea.overallScore}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground">市場性</p>
-                    <p className="text-2xl tabular-nums">{detail.idea.marketScore}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground">収益性</p>
-                    <p className="text-2xl tabular-nums">{detail.idea.profitScore}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground">バズ度</p>
-                    <p className="text-2xl tabular-nums">{detail.idea.buzzScore}</p>
-                  </CardContent>
-                </Card>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-xs text-muted-foreground">総合</p>
+                      <p className="text-2xl tabular-nums">{detail.idea.overallScore}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-xs text-muted-foreground">市場性</p>
+                      <p className="text-2xl tabular-nums">{detail.idea.marketScore}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-xs text-muted-foreground">収益性</p>
+                      <p className="text-2xl tabular-nums">{detail.idea.profitScore}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-xs text-muted-foreground">バズ度</p>
+                      <p className="text-2xl tabular-nums">{detail.idea.buzzScore}</p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">コンセプト</p>
-                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.concept}</p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">コンセプト</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.concept}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">ターゲット</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.target}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">収益モデル</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.monetization}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">実行プラン</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.actionPlan}</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">ターゲット</p>
-                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.target}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">収益モデル</p>
-                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.monetization}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">実行プラン</p>
-                <p className="whitespace-pre-wrap leading-relaxed">{detail.idea.actionPlan}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">読み込みに失敗しました。</p>
-          )}
+            ) : (
+              <p className="text-sm text-muted-foreground">読み込みに失敗しました。</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </section>
